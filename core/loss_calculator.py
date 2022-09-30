@@ -57,15 +57,17 @@ class LossCalculatior():
         
         #flow_f = output_dict['flow_f']
         #flow_b = output_dict['flow_b']
-        iters = int(flow_f.size()[0]/im1_ori.size()[0])
+        #iters = int(flow_f.size()[0]/im1_ori.size()[0])
 
-        im1_ori = torch.repeat_interleave(im1_ori, iters, dim=0)
-        im2_ori = torch.repeat_interleave(im2_ori, iters, dim=0)
+       # im1_ori = torch.repeat_interleave(im1_ori, iters, dim=0)
+       # im2_ori = torch.repeat_interleave(im2_ori, iters, dim=0)
 
 
-        occ_fw = torch.repeat_interleave(output_dict['occ_fw'], iters, dim=0)
-        occ_bw = torch.repeat_interleave(output_dict['occ_bw'], iters, dim=0)
-        print(im1_ori.size())
+        #occ_fw = torch.repeat_interleave(output_dict['occ_fw'], iters, dim=0)
+        #occ_bw = torch.repeat_interleave(output_dict['occ_bw'], iters, dim=0)
+        occ_fw = output_dict['occ_fw']
+        occ_bw = output_dict['occ_bw']
+
         this_loss = {}
         # === smooth loss
         if self.conf.smooth_level == 'final':

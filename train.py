@@ -66,49 +66,6 @@ def self_supervised_loss(output_dict, valid):
     flow_loss = (valid[:, None] * i_loss).mean()
     return flow_loss
 
-def sequence_loss2(output_dict, flow_gt, valid, gamma):
-    n_predictions = len(output_dict['predictions_f'])
-    predictions_f = output_dict['predictions_f']
-    predictions_b = output_dict['predictions_b']
-    image1 = output_dict['image1']
-    image2 = output_dict['image2']
-    occ_fw = output_dict['occ_fw']
-    occ_bw = output_dict['occ_bw']
-    loss_calculator = LossCalculatior()
-    
-        #  ===========SEQUENCE LOSS=======================================
-    output_dict['losses'] = []
-    flow_loss = 0.0 
-    ss_weight = 0.4
-    # exclude invalid pixels and extremely large displacements
-    valid = (valid >= 0.5) & ((flow_gt**2).sum(dim=1).sqrt() < MAX_FLOW)
-    for i in range(n_predictions):
-        i_weight = gamma**(n_predictions - i - 1)
-        # CALCULATE LOSSES
-        i_loss = loss_calculator(output_dict, image1, image2, predictions_f[i], predictions_b[i])
-        i_loss = compute_loss(i_loss)
-        flow_loss += i_weight * (i_loss ).mean()
-
-    #custom self supervision
-    #ss_loss = self_supervised_loss(output_dict, valid) * ss_weight
-    #flow_loss = flow_loss*(1- ss_weight) + ss_loss
-    # Calculate EPE - USED ONLY FOR MONITORING PURPOSES, IS NOT USED FOR TRAINING
-    
-    epe = torch.sum((output_dict["flow_f"]- flow_gt)**2, dim=1).sqrt()
-    epe = epe.view(-1)[valid.view(-1)]
-
-    #print(flow_loss, len(output_dict["flow_f"]))
-
-    metrics = {
-        'epe': epe.mean().item(),
-        '1px': (epe < 1).float().mean().item(),
-        '3px': (epe < 3).float().mean().item(),
-        '5px': (epe < 5).float().mean().item(),
-        'loss_total': flow_loss.cpu().detach().numpy()
-    }
-    #print(flow_loss)
-    return flow_loss, metrics
-
 def sequence_loss(output_dict, flow_gt, valid, gamma):
     """ Loss function defined over sequence of flow predictions """
 
@@ -118,7 +75,7 @@ def sequence_loss(output_dict, flow_gt, valid, gamma):
     # exclude invalid pixels and extremely large displacements
     valid = (valid >= 0.5) & ((flow_gt**2).sum(dim=1).sqrt() < MAX_FLOW)
     for i in range(n_predictions):
-        i_weight = gamma**(n_predictions - i - 1)
+        i_weight =1# gamma**(n_predictions - i - 1)
         #i_loss = (flow_preds[i] - flow_gt).abs()
         i_loss = compute_loss(output_dict['losses'][i])
         flow_loss += i_weight * (i_loss ).mean()
@@ -251,7 +208,7 @@ def train(model, train_loader, optimizer, scheduler, logger, scaler, args):
         optimizer.zero_grad()
         
         output_dict = model(image1, image2)
-    
+        
         loss, metrics = sequence_loss(output_dict, flow, valid, args.gamma)
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)

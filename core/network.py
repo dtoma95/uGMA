@@ -163,17 +163,28 @@ class RAFTGMA(nn.Module):
          #  ===========SEQUENCE LOSS=======================================
         output_dict['losses'] = []
 
-        predictions_f = torch.stack(predictions_f)
-        predictions_b = torch.stack(predictions_b)
-        predictions_f = torch.flatten(predictions_f, start_dim=0, end_dim=1)
-        predictions_b = torch.flatten(predictions_b, start_dim=0, end_dim=1)
+        #predictions_f = torch.stack(predictions_f)
+        #predictions_b = torch.stack(predictions_b)
+       # predictions_f = torch.flatten(predictions_f, start_dim=0, end_dim=1)
+        #predictions_b = torch.flatten(predictions_b, start_dim=0, end_dim=1)
         
-        print(predictions_f.size())
+        #print(predictions_f.size())
         # CALCULATE LOSSES
-        this_loss = self.loss_calculator(output_dict, image1, image2, predictions_f, predictions_b)
-        for key in this_loss.keys():
-            #this_loss[key].grad_fn = predictions_f[i].grad_fn
-            print(key, this_loss[key])
+        gamma = 0.8
+        n_predictions = len(predictions_f)
+        
+        this_loss = {}
+        for i in range(len(predictions_f)):
+            
+            i_weight = gamma**(n_predictions - i - 1)
+            this_loss_temp = self.loss_calculator(output_dict, image1, image2, predictions_f[0], predictions_b[0])
+            if i == 0:
+                for key in this_loss_temp.keys():
+                    this_loss[key] = i_weight*this_loss_temp[key]
+            else:
+                for key in this_loss_temp.keys():
+                    this_loss[key] += i_weight*this_loss_temp[key]
+
         output_dict['losses'].append(this_loss)
         return output_dict
     
